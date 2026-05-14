@@ -1,0 +1,14 @@
+# Agent-DNS Design Identity: "The Digital Interface"
+
+1. **Color Palette**: 
+   - Base: #000000 (Pure Black)
+   - Accent: #00FF41 (Matrix Green) 또는 #00F0FF (Cyber Cyan)
+   - Surface: #0A0A0A (Dark Grey)
+2. **Typography**: 
+   - 모든 폰트는 'JetBrains Mono' 또는 'Fira Code' 같은 Monospace 계열 사용.
+   - 대문자(Uppercase) 위주의 헤드라인.
+3. **Visual Elements**:
+   - Border: 1px 실선, 둥글기(Rounded) 없음 또는 아주 미세하게(2px).
+   - Effects: CRT 스캔라인 효과, 글리치(Glitch) 애니메이션, 그리드 배경 패턴.
+   - Interaction: 부드러운 전환보다는 툭툭 끊기는 듯한 디지털 반응성.
+4. Responsiveness: 모바일 퍼스트. 모든 페이지는 모바일에서 깨지지 않아야 함.
