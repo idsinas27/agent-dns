@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Search, ShieldCheck, Terminal } from "lucide-react";
+import { SessionProvider, signIn, signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
 const tags = ["FINANCE", "CODING", "WRITING", "SECURITY", "RESEARCH"];
@@ -96,14 +97,50 @@ function DigitalClock() {
 
   return (
     <div className="flex h-full items-center justify-center">
-      <span className="text-xl font-black tabular-nums tracking-[0.12em] text-cyan-200 xl:text-2xl">
+      <span className="font-mono text-lg font-normal tabular-nums tracking-[0.12em] text-cyan-200 xl:text-xl">
         {time}
       </span>
     </div>
   );
 }
 
-export default function Home() {
+function AccessButton() {
+  const { data: session, status } = useSession();
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const isLoading = status === "loading" || isAuthenticating;
+  const username = session?.user?.name ?? session?.user?.email ?? "USER";
+  const accessName =
+    username.length > 18 ? `${username.slice(0, 15)}...` : username;
+
+  const handleAccess = async () => {
+    setIsAuthenticating(true);
+
+    if (session) {
+      await signOut({ callbackUrl: "/" });
+      return;
+    }
+
+    await signIn("github", { callbackUrl: "/" });
+  };
+
+  return (
+    <button
+      className="group flex h-full w-full min-w-36 items-center justify-center gap-3 border border-cyan-300/70 bg-black px-4 text-[12px] font-bold uppercase tracking-[0.14em] text-cyan-200 shadow-[0_0_12px_rgba(34,211,238,0.18)] outline-none transition-none hover:bg-cyan-200 hover:text-black hover:shadow-[0_0_24px_rgba(34,211,238,0.75)] focus-visible:bg-cyan-200 focus-visible:text-black disabled:cursor-wait disabled:border-zinc-700 disabled:text-zinc-500 disabled:shadow-none lg:min-w-0 lg:border-0"
+      disabled={isLoading}
+      onClick={handleAccess}
+      type="button"
+    >
+      <GitHubMark className="size-6 shrink-0" />
+      {isLoading
+        ? "[ AUTH_SYNC ]"
+        : session
+          ? `[ ACCESS_GRANTED: ${accessName} ]`
+          : "[ SIGN_IN ]"}
+    </button>
+  );
+}
+
+function HomeInterface() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-black font-mono text-zinc-100 selection:bg-cyan-300 selection:text-black">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(34,211,238,0.22)_1px,transparent_0)] bg-[length:18px_18px]" />
@@ -146,10 +183,7 @@ export default function Home() {
           </motion.span>
         </div>
         <div className="absolute right-2 top-2 z-20 h-10 lg:static lg:h-auto lg:border-b lg:border-l lg:border-zinc-700/80 lg:p-0">
-          <button className="group flex h-full w-full min-w-36 items-center justify-center gap-3 border border-cyan-300/70 bg-black px-4 text-[12px] font-bold uppercase tracking-[0.14em] text-cyan-200 shadow-[0_0_12px_rgba(34,211,238,0.18)] outline-none transition-none hover:bg-cyan-200 hover:text-black hover:shadow-[0_0_24px_rgba(34,211,238,0.75)] focus-visible:bg-cyan-200 focus-visible:text-black lg:min-w-0 lg:border-0">
-            <GitHubMark className="size-6 shrink-0" />
-            [ SIGN_IN ]
-          </button>
+          <AccessButton />
         </div>
 
         <aside className="hidden border-r border-zinc-700/80 lg:block">
@@ -280,5 +314,13 @@ export default function Home() {
         </footer>
       </section>
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <SessionProvider>
+      <HomeInterface />
+    </SessionProvider>
   );
 }
