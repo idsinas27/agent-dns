@@ -1,84 +1,104 @@
-import { getToken } from "next-auth/jwt";
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 const owner = "idsinas27";
 const repo = "agent-dns";
+const templatePath = ".github/ISSUE_TEMPLATE";
 
-type IssuePayload = {
-  body?: unknown;
-  label?: unknown;
-  title?: unknown;
+type GitHubContentItem = {
+  download_url: string | null;
+  name: string;
+  type: string;
 };
 
-const issueLabels = ["question", "bug", "enhancement"] as const;
+type IssueTemplate = {
+  description: string;
+  name: string;
+  url: string;
+};
 
-function stringValue(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
+function titleFromFileName(fileName: string) {
+  return fileName
+    .replace(/\.(md|ya?ml)$/i, "")
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function issueLabel(value: unknown): (typeof issueLabels)[number] {
-  return issueLabels.includes(value as (typeof issueLabels)[number])
-    ? (value as (typeof issueLabels)[number])
-    : "question";
+function readYamlValue(content: string, key: string) {
+  const match = content.match(new RegExp(`^${key}:\\s*["']?(.+?)["']?\\s*$`, "m"));
+  return match?.[1]?.trim() ?? "";
+}
+
+function parseTemplate(fileName: string, content: string) {
+  const name =
+    readYamlValue(content, "name") ||
+    readYamlValue(content, "title") ||
+    titleFromFileName(fileName);
+  const description =
+    readYamlValue(content, "description") || `Create a ${name.toLowerCase()} issue.`;
+
+  return {
+    description,
+    name,
+    url: `https://github.com/${owner}/${repo}/issues/new?template=${encodeURIComponent(
+      fileName,
+    )}`,
+  };
 }
 
 export const runtime = "nodejs";
 
-export async function POST(request: NextRequest) {
-  const token = await getToken({
-    req: request,
-    secret: process.env.AUTH_SECRET,
-  });
-
-  if (!token?.githubAccessToken) {
-    return NextResponse.json(
-      { error: "Sign in with GitHub again before submitting an issue." },
-      { status: 401 },
-    );
-  }
-
-  const payload = (await request.json().catch(() => ({}))) as IssuePayload;
-  const title = stringValue(payload.title);
-  const body = stringValue(payload.body);
-  const label = issueLabel(payload.label);
-
-  if (!title || !body) {
-    return NextResponse.json(
-      { error: "Title and description are required." },
-      { status: 400 },
-    );
-  }
-
+export async function GET() {
   const response = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/issues`,
+    `https://api.github.com/repos/${owner}/${repo}/contents/${templatePath}`,
     {
-      method: "POST",
       headers: {
         Accept: "application/vnd.github+json",
-        Authorization: `Bearer ${token.githubAccessToken}`,
-        "Content-Type": "application/json",
         "X-GitHub-Api-Version": "2022-11-28",
       },
-      body: JSON.stringify({ body, labels: [label], title }),
+      next: {
+        revalidate: 300,
+      },
     },
   );
-
-  const data = (await response.json().catch(() => null)) as
-    | { html_url?: string; message?: string }
-    | null;
 
   if (!response.ok) {
     return NextResponse.json(
       {
-        error:
-          data?.message ??
-          "GitHub rejected the issue request. Try signing in again.",
+        error: "Unable to load issue templates.",
+        templates: [
+          parseTemplate("question.md", "name: question"),
+          parseTemplate("bug.md", "name: bug"),
+          parseTemplate("enhancement.md", "name: enhancement"),
+        ],
       },
-      { status: response.status },
+      { status: 200 },
     );
   }
 
-  return NextResponse.json({
-    url: data?.html_url ?? `https://github.com/${owner}/${repo}/issues`,
-  });
+  const items = (await response.json()) as GitHubContentItem[];
+  const templateFiles = items.filter(
+    (item) =>
+      item.type === "file" &&
+      item.name !== "config.yml" &&
+      /\.(md|ya?ml)$/i.test(item.name),
+  );
+
+  const templates = await Promise.all(
+    templateFiles.map(async (item): Promise<IssueTemplate> => {
+      if (!item.download_url) {
+        return parseTemplate(item.name, "");
+      }
+
+      const templateResponse = await fetch(item.download_url, {
+        next: {
+          revalidate: 300,
+        },
+      });
+      const content = await templateResponse.text().catch(() => "");
+
+      return parseTemplate(item.name, content);
+    }),
+  );
+
+  return NextResponse.json({ templates });
 }

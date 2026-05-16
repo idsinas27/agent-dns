@@ -3,7 +3,6 @@
 import { motion } from "framer-motion";
 import { Mail, MessageCirclePlus, Search, ShieldCheck, Terminal } from "lucide-react";
 import { SessionProvider, signIn, signOut, useSession } from "next-auth/react";
-import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 
 const tags = ["FINANCE", "CODING", "WRITING", "SECURITY", "RESEARCH"];
@@ -23,9 +22,13 @@ const metrics = [
   ["REGISTERED AGENTS", "18,402"],
 ];
 
-const issueLabels = ["question", "bug", "enhancement"] as const;
-
 const title = "THE REGISTRY FOR THE AGENTIC WORLD";
+
+type IssueTemplate = {
+  description: string;
+  name: string;
+  url: string;
+};
 
 function DnsMark({ className = "" }: { className?: string }) {
   return (
@@ -134,56 +137,36 @@ function AccessButton() {
 
 function FeedbackHub() {
   const [isIssueOpen, setIsIssueOpen] = useState(false);
-  const [issueBody, setIssueBody] = useState("");
   const [issueError, setIssueError] = useState("");
-  const [issueLabel, setIssueLabel] = useState<(typeof issueLabels)[number]>("question");
-  const [issueTitle, setIssueTitle] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [issueTemplates, setIssueTemplates] = useState<IssueTemplate[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
 
-  const closeIssueDialog = () => {
-    if (isSubmitting) {
+  const openIssueDialog = async () => {
+    setIsIssueOpen(true);
+    setIssueError("");
+
+    if (issueTemplates.length > 0 || isLoadingTemplates) {
       return;
     }
 
-    setIsIssueOpen(false);
-    setIssueError("");
-  };
-
-  const submitIssue = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIssueError("");
-    setIsSubmitting(true);
+    setIsLoadingTemplates(true);
 
     try {
-      const response = await fetch("/api/github/issues", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          body: issueBody,
-          label: issueLabel,
-          title: issueTitle,
-        }),
-      });
+      const response = await fetch("/api/github/issues");
       const result = (await response.json().catch(() => ({}))) as {
         error?: string;
-        url?: string;
+        templates?: IssueTemplate[];
       };
 
-      if (!response.ok || !result.url) {
-        throw new Error(result.error ?? "Issue submission failed.");
+      if (!response.ok || !result.templates?.length) {
+        throw new Error(result.error ?? "Issue templates are unavailable.");
       }
 
-      setIssueBody("");
-      setIssueLabel("question");
-      setIssueTitle("");
-      setIsIssueOpen(false);
-      window.open(result.url, "_blank", "noopener,noreferrer");
+      setIssueTemplates(result.templates);
     } catch (error) {
-      setIssueError(error instanceof Error ? error.message : "Issue submission failed.");
+      setIssueError(error instanceof Error ? error.message : "Issue templates are unavailable.");
     } finally {
-      setIsSubmitting(false);
+      setIsLoadingTemplates(false);
     }
   };
 
@@ -211,7 +194,7 @@ function FeedbackHub() {
         <button
           aria-label="Create GitHub issue"
           className="flex size-10 items-center justify-center border border-zinc-700 bg-black text-zinc-300 transition-none hover:border-cyan-200 hover:bg-cyan-200 hover:text-black focus-visible:border-cyan-200 focus-visible:bg-cyan-200 focus-visible:text-black"
-          onClick={() => setIsIssueOpen(true)}
+          onClick={openIssueDialog}
           title="Issue"
           type="button"
         >
@@ -225,68 +208,52 @@ function FeedbackHub() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4"
           role="dialog"
         >
-          <form
+          <div
             className="w-full max-w-lg border border-cyan-300/70 bg-[#0a0a0a] shadow-[0_0_32px_rgba(34,211,238,0.16)]"
-            onSubmit={submitIssue}
           >
             <div className="border-b border-zinc-700/80 px-4 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-200">
-              GitHub Issue
+              Select Issue Type
             </div>
             <div className="space-y-4 p-4">
-              <div className="grid w-full gap-3 sm:grid-cols-[1fr_160px]">
-                <input
-                  className="h-12 w-full border border-zinc-700 bg-black px-3 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-cyan-300"
-                  onChange={(event) => setIssueTitle(event.target.value)}
-                  placeholder="Add a title"
-                  required
-                  value={issueTitle}
-                />
-                <select
-                  aria-label="Issue label"
-                  className="h-12 w-full border border-zinc-700 bg-black px-3 text-xs font-bold uppercase tracking-[0.12em] text-cyan-200 outline-none focus:border-cyan-300"
-                  onChange={(event) =>
-                    setIssueLabel(event.target.value as (typeof issueLabels)[number])
-                  }
-                  value={issueLabel}
-                >
-                  {issueLabels.map((label) => (
-                    <option key={label} value={label}>
-                      {label}
-                    </option>
+              {isLoadingTemplates ? (
+                <div className="border border-zinc-800 px-3 py-6 text-center text-[11px] uppercase tracking-[0.16em] text-zinc-500">
+                  Loading templates
+                </div>
+              ) : null}
+              {!isLoadingTemplates && issueTemplates.length > 0 ? (
+                <div className="grid gap-3">
+                  {issueTemplates.map((template) => (
+                    <a
+                      className="group border border-zinc-700 bg-black px-3 py-3 text-left transition-none hover:border-cyan-200 hover:bg-cyan-200 hover:text-black focus-visible:border-cyan-200 focus-visible:bg-cyan-200 focus-visible:text-black"
+                      href={template.url}
+                      key={template.url}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      <span className="block text-xs font-bold uppercase tracking-[0.16em] text-cyan-200 group-hover:text-black">
+                        {template.name}
+                      </span>
+                      <span className="mt-2 block text-xs leading-5 text-zinc-500 group-hover:text-black group-focus-visible:text-black">
+                        {template.description}
+                      </span>
+                    </a>
                   ))}
-                </select>
-              </div>
-              <textarea
-                className="min-h-36 w-full resize-none border border-zinc-700 bg-black px-3 py-3 text-sm leading-6 text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-cyan-300"
-                onChange={(event) => setIssueBody(event.target.value)}
-                placeholder="Add a decription"
-                required
-                value={issueBody}
-              />
+                </div>
+              ) : null}
               {issueError ? (
                 <p className="border border-cyan-300/60 bg-cyan-300/10 px-3 py-2 text-[11px] uppercase tracking-[0.12em] text-cyan-200">
                   {issueError}
                 </p>
               ) : null}
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  className="flex h-11 items-center justify-center border border-zinc-700 bg-black px-4 text-xs font-bold uppercase tracking-[0.16em] text-zinc-300 hover:bg-zinc-100 hover:text-black disabled:cursor-wait disabled:text-zinc-600"
-                  disabled={isSubmitting}
-                  onClick={closeIssueDialog}
-                  type="button"
-                >
-                  Cancel
-                </button>
-                <button
-                  className="flex h-11 items-center justify-center border border-cyan-300 bg-black px-4 text-xs font-bold uppercase tracking-[0.16em] text-cyan-200 hover:bg-cyan-200 hover:text-black disabled:cursor-wait disabled:border-zinc-700 disabled:text-zinc-600"
-                  disabled={isSubmitting}
-                  type="submit"
-                >
-                  {isSubmitting ? "Submitting" : "Submit"}
-                </button>
-              </div>
+              <button
+                className="flex h-11 w-full items-center justify-center border border-zinc-700 bg-black px-4 text-xs font-bold uppercase tracking-[0.16em] text-zinc-300 hover:bg-zinc-100 hover:text-black"
+                onClick={() => setIsIssueOpen(false)}
+                type="button"
+              >
+                Cancel
+              </button>
             </div>
-          </form>
+          </div>
         </div>
       ) : null}
     </>

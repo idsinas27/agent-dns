@@ -152,15 +152,7 @@ export const {
   handlers: { GET, POST },
   auth,
 } = NextAuth({
-  providers: [
-    GitHub({
-      authorization: {
-        params: {
-          scope: "read:user user:email public_repo",
-        },
-      },
-    }),
-  ],
+  providers: [GitHub],
   pages: {
     signIn: "/auth/signin",
     error: "/auth/error",
@@ -229,10 +221,6 @@ export const {
     },
     async jwt({ account, profile, token, user }) {
       if (account?.provider === "github" && account.providerAccountId) {
-        if (typeof account.access_token === "string") {
-          token.githubAccessToken = account.access_token;
-        }
-
         if (typeof user.id === "string" && typeof user.githubId === "string") {
           token.dbUserId = user.id;
           token.githubId = user.githubId;
