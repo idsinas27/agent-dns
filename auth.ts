@@ -5,6 +5,9 @@ import GitHub from "next-auth/providers/github";
 type DbUser = {
   id: string;
   github_id: string;
+  email: string | null;
+  image: string | null;
+  name: string | null;
 };
 
 type GitHubProfile = {
@@ -16,9 +19,48 @@ type GitHubProfile = {
   picture?: string | null;
 };
 
+const isDev = process.env.NODE_ENV !== "production";
+
+if (isDev) {
+  console.log("[auth:init] POSTGRES_URL defined:", Boolean(process.env.POSTGRES_URL));
+}
+
+function normalizeGitHubProfile({
+  accountProviderId,
+  profile,
+  user,
+}: {
+  accountProviderId: string;
+  profile: GitHubProfile | undefined;
+  user: {
+    email?: string | null;
+    image?: string | null;
+    name?: string | null;
+  };
+}) {
+  const githubId =
+    profile?.id === null || profile?.id === undefined
+      ? accountProviderId
+      : String(profile.id);
+  const login = profile?.login ?? null;
+  const email =
+    profile?.email ??
+    user.email ??
+    (login ? `${login}@users.noreply.github.com` : null);
+  const name = profile?.name ?? login ?? user.name ?? `github-${githubId}`;
+  const image = profile?.avatar_url ?? profile?.picture ?? user.image ?? null;
+
+  return {
+    email,
+    githubId,
+    image,
+    name,
+  };
+}
+
 async function findUserByGithubId(githubId: string) {
   const { rows } = await sql<DbUser>`
-    SELECT id, github_id
+    SELECT id, github_id, email, name, image
     FROM users
     WHERE github_id = ${githubId}
     LIMIT 1
@@ -48,27 +90,33 @@ async function upsertGitHubUser({
   githubId: string;
   image: string | null;
   name: string | null;
-}) {
+}): Promise<DbUser> {
   const existingUser = await findUserByGithubId(githubId);
 
   if (existingUser) {
-    await sql`
+    const { rows } = await sql<DbUser>`
       UPDATE users
       SET name = ${name}, email = ${email}, image = ${image}
       WHERE github_id = ${githubId}
+      RETURNING id, github_id, email, name, image
     `;
 
-    return existingUser.id;
+    return rows[0] ?? existingUser;
   }
 
   const id = crypto.randomUUID();
 
-  await sql`
+  const { rows } = await sql<DbUser>`
     INSERT INTO users (id, github_id, email, name, image)
     VALUES (${id}, ${githubId}, ${email}, ${name}, ${image})
+    RETURNING id, github_id, email, name, image
   `;
 
-  return id;
+  if (!rows[0]) {
+    throw new Error("GitHub user upsert completed without returning a user row.");
+  }
+
+  return rows[0];
 }
 
 export const {
@@ -76,52 +124,100 @@ export const {
   auth,
 } = NextAuth({
   providers: [GitHub],
+  pages: {
+    signIn: "/auth/signin",
+    error: "/auth/error",
+  },
   session: {
     strategy: "jwt",
   },
   callbacks: {
     async signIn({ account, profile, user }) {
-      if (account?.provider !== "github" || !account.providerAccountId) {
+      try {
+        console.log("[auth:signIn] incoming github payload:", {
+          account: account
+            ? {
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+                type: account.type,
+              }
+            : null,
+          profile: profile
+            ? {
+                avatar_url: (profile as GitHubProfile).avatar_url,
+                email: profile.email,
+                id: (profile as GitHubProfile).id,
+                login: (profile as GitHubProfile).login,
+                name: profile.name,
+                picture: profile.picture,
+              }
+            : null,
+          user: {
+            email: user.email,
+            image: user.image,
+            name: user.name,
+          },
+        });
+
+        if (account?.provider !== "github" || !account.providerAccountId) {
+          console.error("[auth:signIn] rejected non-github or missing account id", {
+            provider: account?.provider,
+            providerAccountId: account?.providerAccountId,
+          });
+          return false;
+        }
+
+        const dbUser = await upsertGitHubUser(
+          normalizeGitHubProfile({
+            accountProviderId: account.providerAccountId,
+            profile: profile as GitHubProfile | undefined,
+            user,
+          }),
+        );
+
+        user.id = dbUser.id;
+        user.githubId = dbUser.github_id;
+
+        console.log("[auth:signIn] database user synced:", {
+          dbUserId: dbUser.id,
+          githubId: dbUser.github_id,
+          hasEmail: Boolean(dbUser.email),
+          hasImage: Boolean(dbUser.image),
+          hasName: Boolean(dbUser.name),
+        });
+
+        return true;
+      } catch (error) {
+        console.error("[auth:signIn] failed to sync GitHub user:", error);
         return false;
       }
-
-      const githubProfile = profile as GitHubProfile | undefined;
-      const githubId = account.providerAccountId;
-      const email = githubProfile?.email ?? user.email ?? null;
-      const name = githubProfile?.name ?? githubProfile?.login ?? user.name ?? null;
-      const image =
-        githubProfile?.avatar_url ?? githubProfile?.picture ?? user.image ?? null;
-
-      await upsertGitHubUser({
-        email,
-        githubId,
-        image,
-        name,
-      });
-
-      return true;
     },
     async jwt({ account, profile, token, user }) {
       if (account?.provider === "github" && account.providerAccountId) {
-        const githubProfile = profile as GitHubProfile | undefined;
-        const githubId = account.providerAccountId;
-        const email = githubProfile?.email ?? user.email ?? token.email ?? null;
-        const name =
-          githubProfile?.name ?? githubProfile?.login ?? user.name ?? token.name ?? null;
-        const image =
-          githubProfile?.avatar_url ??
-          githubProfile?.picture ??
-          user.image ??
-          token.picture ??
-          null;
+        try {
+          const dbUser = await upsertGitHubUser(
+            normalizeGitHubProfile({
+              accountProviderId: account.providerAccountId,
+              profile: profile as GitHubProfile | undefined,
+              user: {
+                email: user.email ?? token.email ?? null,
+                image: user.image ?? token.picture ?? null,
+                name: user.name ?? token.name ?? null,
+              },
+            }),
+          );
 
-        token.githubId = githubId;
-        token.dbUserId = await upsertGitHubUser({
-          email,
-          githubId,
-          image,
-          name,
-        });
+          token.githubId = dbUser.github_id;
+          token.dbUserId = dbUser.id;
+
+          console.log("[auth:jwt] token hydrated from database:", {
+            dbUserId: dbUser.id,
+            githubId: dbUser.github_id,
+          });
+        } catch (error) {
+          console.error("[auth:jwt] failed to hydrate token from database:", error);
+          throw error;
+        }
       }
 
       return token;
@@ -142,6 +238,14 @@ export const {
         session.user.id = dbUserId;
         session.user.githubId =
           typeof token.githubId === "string" ? token.githubId : null;
+      }
+
+      if (isDev) {
+        console.log("[auth:session] session user hydrated:", {
+          dbUserId,
+          githubId: token.githubId,
+          hasSessionUser: Boolean(session.user),
+        });
       }
 
       return session;
