@@ -136,6 +136,7 @@ function AccessButton() {
 }
 
 function FeedbackHub() {
+  const [isEmailOpen, setIsEmailOpen] = useState(false);
   const [isIssueOpen, setIsIssueOpen] = useState(false);
   const [issueError, setIssueError] = useState("");
   const [issueTemplates, setIssueTemplates] = useState<IssueTemplate[]>([]);
@@ -173,14 +174,15 @@ function FeedbackHub() {
   return (
     <>
       <div className="flex h-full items-center justify-center gap-2">
-        <a
+        <button
           aria-label="Email Agent DNS"
           className="flex size-10 items-center justify-center border border-zinc-700 bg-black text-zinc-300 transition-none hover:border-cyan-200 hover:bg-cyan-200 hover:text-black focus-visible:border-cyan-200 focus-visible:bg-cyan-200 focus-visible:text-black"
-          href="mailto:idsinas27@gmail.com"
+          onClick={() => setIsEmailOpen(true)}
           title="Email"
+          type="button"
         >
           <Mail className="size-4" />
-        </a>
+        </button>
         <a
           aria-label="Open GitHub repository"
           className="flex size-10 items-center justify-center border border-zinc-700 bg-black text-zinc-300 transition-none hover:border-cyan-200 hover:bg-cyan-200 hover:text-black focus-visible:border-cyan-200 focus-visible:bg-cyan-200 focus-visible:text-black"
@@ -201,6 +203,45 @@ function FeedbackHub() {
           <MessageCirclePlus className="size-4" />
         </button>
       </div>
+
+      {isEmailOpen ? (
+        <div
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4"
+          role="dialog"
+        >
+          <div className="w-full max-w-sm border border-cyan-300/70 bg-[#0a0a0a] shadow-[0_0_32px_rgba(34,211,238,0.16)]">
+            <div className="border-b border-zinc-700/80 px-4 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-200">
+              Select Email App
+            </div>
+            <div className="space-y-3 p-4">
+              <a
+                className="group flex h-12 items-center gap-3 border border-zinc-700 bg-black px-3 text-xs font-bold uppercase tracking-[0.14em] text-zinc-300 transition-none hover:border-cyan-200 hover:bg-cyan-200 hover:text-black focus-visible:border-cyan-200 focus-visible:bg-cyan-200 focus-visible:text-black"
+                href="https://mail.google.com/mail/?view=cm&fs=1&to=idsinas27%40gmail.com"
+                rel="noreferrer"
+                target="_blank"
+              >
+                <Mail className="size-4 text-cyan-200 group-hover:text-black group-focus-visible:text-black" />
+                Gmail
+              </a>
+              <a
+                className="group flex h-12 items-center gap-3 border border-zinc-700 bg-black px-3 text-xs font-bold uppercase tracking-[0.14em] text-zinc-300 transition-none hover:border-cyan-200 hover:bg-cyan-200 hover:text-black focus-visible:border-cyan-200 focus-visible:bg-cyan-200 focus-visible:text-black"
+                href="mailto:idsinas27@gmail.com"
+              >
+                <Mail className="size-4 text-cyan-200 group-hover:text-black group-focus-visible:text-black" />
+                Default Email App
+              </a>
+              <button
+                className="flex h-11 w-full items-center justify-center border border-zinc-700 bg-black px-4 text-xs font-bold uppercase tracking-[0.16em] text-zinc-300 hover:bg-zinc-100 hover:text-black"
+                onClick={() => setIsEmailOpen(false)}
+                type="button"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {isIssueOpen ? (
         <div
@@ -364,6 +405,10 @@ function HomeInterface() {
                 </motion.span>
               ))}
             </h1>
+            {/* TODO: Remove this pre-launch notice when Agent DNS is ready for public launch. */}
+            <p className="mx-auto mt-5 max-w-2xl text-center text-xs font-bold uppercase tracking-[0.22em] text-cyan-200 sm:text-sm">
+              Coming Soon / Registry Access Opening Shortly
+            </p>
 
             <div className="mx-auto mt-8 max-w-3xl">
               <label className="group/search relative block">
