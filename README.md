@@ -1,6 +1,8 @@
 # 🌐 Agent DNS
 > The Registry for the Agentic World.
 
+🔗 **Live Service:** [https://agent-dns.io](https://agent-dns.io)
+
 ![Agent DNS Banner](https://github.com/user-attachments/assets/2ea63baf-c979-4ee4-a99c-8b3b17bf0495)
 
 ### 01. THE FRAGMENTED AI ECOSYSTEM
@@ -16,4 +18,6 @@ No complex setup required. Simply add a single manifest file defining your endpo
 
 ## 🚀 Getting Started
 
-Coming Soon / Registry Access Opening Shortly
+> **[ STATUS: BOOTSTRAPPING ]**
+> Global registry access is currently restricted.
+> Public initialization sequence will begin shortly. Stay tuned.
