@@ -73,7 +73,7 @@ export default async function SignInPage({
 
         <div className="flex items-center justify-center px-4 py-10">
           <div className="w-full max-w-xl border border-zinc-700/80 bg-[#0a0a0a]/80">
-            <div className="border-b border-zinc-700/80 px-4 py-3 text-[10px] uppercase tracking-[0.22em] text-[#00ff41]">
+            <div className="border-b border-zinc-700/80 px-4 py-3 text-[10px] uppercase tracking-[0.22em] text-cyan-200">
               ACCESS REQUEST / GITHUB PROVIDER
             </div>
             <div className="space-y-6 p-5 sm:p-8">
@@ -92,7 +92,7 @@ export default async function SignInPage({
               </div>
 
               {error ? (
-                <div className="border border-[#00ff41]/70 bg-[#00ff41]/10 px-3 py-2 text-[11px] uppercase tracking-[0.12em] text-[#00ff41]">
+                <div className="border border-cyan-300/70 bg-cyan-300/10 px-3 py-2 text-[11px] uppercase tracking-[0.12em] text-cyan-200">
                   AUTH_ERROR: {error}
                 </div>
               ) : null}

@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { auth } from "@/auth-proxy";
 import { NextResponse } from "next/server";
 
 export const proxy = auth(() => NextResponse.next());

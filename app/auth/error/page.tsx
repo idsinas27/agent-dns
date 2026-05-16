@@ -32,8 +32,8 @@ export default async function AuthErrorPage({
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[length:100%_4px] opacity-20" />
 
       <section className="relative z-10 flex min-h-screen items-center justify-center border border-zinc-700/80 px-4 py-10">
-        <div className="w-full max-w-xl border border-[#00ff41]/80 bg-[#0a0a0a]/90">
-          <div className="border-b border-[#00ff41]/60 px-4 py-3 text-[10px] uppercase tracking-[0.22em] text-[#00ff41]">
+        <div className="w-full max-w-xl border border-cyan-300/80 bg-[#0a0a0a]/90">
+          <div className="border-b border-cyan-300/60 px-4 py-3 text-[10px] uppercase tracking-[0.22em] text-cyan-200">
             AUTH_GATEWAY / ERROR SIGNAL
           </div>
           <div className="space-y-6 p-5 sm:p-8">
@@ -50,7 +50,7 @@ export default async function AuthErrorPage({
               <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">
                 Error
               </p>
-              <p className="mt-2 text-sm uppercase tracking-[0.12em] text-[#00ff41]">
+              <p className="mt-2 text-sm uppercase tracking-[0.12em] text-cyan-200">
                 {error}
               </p>
               <p className="mt-4 text-sm leading-6 text-zinc-400">{message}</p>
