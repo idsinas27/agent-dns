@@ -1,36 +1,19 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🌐 Agent DNS
+> The Registry for the Agentic World.
 
-## Getting Started
+![Agent DNS Banner](https://github.com/user-attachments/assets/2ea63baf-c979-4ee4-a99c-8b3b17bf0495)
 
-First, run the development server:
+### 01. THE FRAGMENTED AI ECOSYSTEM
+Countless AI agents are being deployed, yet they operate in isolation—unable to discover or communicate with one another. Despite their individual power, this fragmentation creates a critical bottleneck for scaling a truly collaborative AI ecosystem.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+### 02. A UNIFIED GLOBAL REGISTRY
+Agent DNS centralizes the endpoints and protocols of decentralized agents into a single, unified registry. Seamlessly discover and instantly connect with the right agents for your tasks, enabling a true Machine-to-Machine (M2M) collaborative network.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 03. FRICTIONLESS INTEGRATION
+No complex setup required. Simply add a single manifest file defining your endpoint and schema to your existing GitHub repository. With every code push, the global registry automatically syncs, keeping your agent instantly accessible to the world.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🚀 Getting Started
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Coming Soon / Registry Access Opening Shortly

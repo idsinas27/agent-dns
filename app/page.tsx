@@ -1,9 +1,17 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Mail, MessageCirclePlus, Search, ShieldCheck, Terminal } from "lucide-react";
+import {
+  ChevronDown,
+  LogOut,
+  Mail,
+  MessageCirclePlus,
+  Search,
+  ShieldCheck,
+  Terminal,
+} from "lucide-react";
 import { SessionProvider, signIn, signOut, useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const tags = ["FINANCE", "CODING", "WRITING", "SECURITY", "RESEARCH"];
 
@@ -100,38 +108,103 @@ function DigitalClock() {
 function AccessButton() {
   const { data: session, status } = useSession();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const isLoading = status === "loading" || isAuthenticating;
   const username = session?.user?.name ?? session?.user?.email ?? "USER";
   const accessName =
     username.length > 18 ? `${username.slice(0, 15)}...` : username;
 
-  const handleAccess = async () => {
-    setIsAuthenticating(true);
-
-    if (session) {
-      await signOut({ callbackUrl: "/" });
+  useEffect(() => {
+    if (!isMenuOpen) {
       return;
     }
 
+    const closeMenu = (event: MouseEvent) => {
+      if (
+        menuRef.current &&
+        event.target instanceof Node &&
+        !menuRef.current.contains(event.target)
+      ) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", closeMenu);
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", closeMenu);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isMenuOpen]);
+
+  const handleAccess = async () => {
+    if (session) {
+      setIsMenuOpen((current) => !current);
+      return;
+    }
+
+    setIsAuthenticating(true);
     await signIn("github", { callbackUrl: "/" });
   };
 
+  const handleSignOut = async () => {
+    setIsMenuOpen(false);
+    setIsAuthenticating(true);
+    await signOut({ callbackUrl: "/" });
+  };
+
   return (
-    <button
-      className="group flex h-full w-full min-w-36 items-center justify-center gap-3 border border-cyan-300/70 bg-black px-4 text-[12px] font-bold tracking-[0.14em] text-cyan-200 shadow-[0_0_12px_rgba(34,211,238,0.18)] outline-none transition-none hover:bg-cyan-200 hover:text-black hover:shadow-[0_0_24px_rgba(34,211,238,0.75)] focus-visible:bg-cyan-200 focus-visible:text-black disabled:cursor-wait disabled:border-zinc-700 disabled:text-zinc-500 disabled:shadow-none lg:min-w-0 lg:border-0"
-      disabled={isLoading}
-      onClick={handleAccess}
-      type="button"
-    >
-      <GitHubMark className="size-6 shrink-0" />
-      {isLoading ? (
-        <span className="uppercase">[ AUTH_SYNC ]</span>
-      ) : session ? (
-        <span className="normal-case">{accessName}</span>
-      ) : (
-        <span className="uppercase">[ SIGN_IN ]</span>
-      )}
-    </button>
+    <div ref={menuRef} className="relative h-full w-full">
+      <button
+        aria-expanded={session ? isMenuOpen : undefined}
+        aria-haspopup={session ? "menu" : undefined}
+        className="group flex h-full w-full min-w-36 items-center justify-center gap-3 border border-cyan-300/70 bg-black px-4 text-[12px] font-bold tracking-[0.14em] text-cyan-200 shadow-[0_0_12px_rgba(34,211,238,0.18)] outline-none transition-none hover:bg-cyan-200 hover:text-black hover:shadow-[0_0_24px_rgba(34,211,238,0.75)] focus-visible:bg-cyan-200 focus-visible:text-black disabled:cursor-wait disabled:border-zinc-700 disabled:text-zinc-500 disabled:shadow-none lg:min-w-0 lg:border-0"
+        disabled={isLoading}
+        onClick={handleAccess}
+        type="button"
+      >
+        <GitHubMark className="size-6 shrink-0" />
+        {isLoading ? (
+          <span className="uppercase">[ AUTH_SYNC ]</span>
+        ) : session ? (
+          <>
+            <span className="normal-case">{accessName}</span>
+            <ChevronDown
+              className={`size-3.5 shrink-0 transition-transform ${
+                isMenuOpen ? "rotate-180" : ""
+              }`}
+            />
+          </>
+        ) : (
+          <span className="uppercase">[ SIGN_IN ]</span>
+        )}
+      </button>
+
+      {session && isMenuOpen ? (
+        <div
+          className="absolute inset-x-0 top-full z-50 border border-zinc-700/80 bg-[#0a0a0a] p-1 shadow-[0_10px_24px_rgba(0,0,0,0.45)]"
+          role="menu"
+        >
+          <button
+            className="flex h-8 w-full items-center gap-2 border border-transparent bg-black px-2 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-zinc-300 transition-none hover:border-cyan-300/60 hover:bg-cyan-200 hover:text-black focus-visible:border-cyan-300/60 focus-visible:bg-cyan-200 focus-visible:text-black"
+            onClick={handleSignOut}
+            role="menuitem"
+            type="button"
+          >
+            <LogOut className="size-3.5 text-cyan-200" />
+            Logout
+          </button>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
