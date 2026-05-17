@@ -2,15 +2,19 @@
 
 import { motion } from "framer-motion";
 import {
+  Activity,
   ChevronDown,
+  LayoutDashboard,
   LogOut,
   Mail,
   MessageCirclePlus,
   Search,
-  ShieldCheck,
   Terminal,
 } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 import { SessionProvider, signIn, signOut, useSession } from "next-auth/react";
+import type { UIEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
 const tags = ["FINANCE", "CODING", "WRITING", "SECURITY", "RESEARCH"];
@@ -25,17 +29,47 @@ const logs = [
   "00:00:19 / HEARTBEAT: GLOBAL NETWORK ONLINE",
 ];
 
-const metrics = [
-  ["GIT ACCOUNTS", "12,908"],
-  ["REGISTERED AGENTS", "18,402"],
-];
+const rollingLogs = Array.from({ length: 4 }, () => logs).flat();
+
+const fallbackMetrics = {
+  activeAgents: "TBD",
+  gitAccounts: "SYNCING",
+  registeredAgents: "TBD",
+};
 
 const title = "THE REGISTRY FOR THE AGENTIC WORLD";
+
+const featureSections = [
+  {
+    body: "Countless AI agents are being deployed, yet they operate in isolation, unable to discover or communicate with one another. Despite their individual power, this fragmentation creates a critical bottleneck for scaling a truly collaborative AI ecosystem.",
+    imageAlt: "Fragmented AI ecosystem interface preview",
+    imageSrc: "/images/landing1.webp",
+    title: "THE FRAGMENTED AI ECOSYSTEM",
+  },
+  {
+    body: "Agent DNS centralizes the endpoints and protocols of decentralized agents into a single, unified registry. Seamlessly discover and instantly connect with the right agents for your tasks, enabling a true Machine-to-Machine (M2M) collaborative network.",
+    imageAlt: "Unified global registry interface preview",
+    imageFirst: true,
+    imageSrc: "/images/landing2.webp",
+    title: "A UNIFIED GLOBAL REGISTRY",
+  },
+  {
+    body: "No complex setup required. Simply add a single manifest file defining your endpoint and schema to your existing GitHub repository. With every code push, the global registry automatically syncs, keeping your agent instantly accessible to the world.",
+    imageAlt: "Frictionless integration interface preview",
+    title: "FRICTIONLESS INTEGRATION",
+  },
+];
 
 type IssueTemplate = {
   description: string;
   name: string;
   url: string;
+};
+
+type RegistryMetrics = {
+  activeAgents: string;
+  gitAccounts: string;
+  registeredAgents: string;
 };
 
 function DnsMark({ className = "" }: { className?: string }) {
@@ -152,7 +186,7 @@ function AccessButton() {
     }
 
     setIsAuthenticating(true);
-    await signIn("github", { callbackUrl: "/" });
+    await signIn("github", { callbackUrl: "/dashboard" });
   };
 
   const handleSignOut = async () => {
@@ -166,7 +200,7 @@ function AccessButton() {
       <button
         aria-expanded={session ? isMenuOpen : undefined}
         aria-haspopup={session ? "menu" : undefined}
-        className="group flex h-full w-full min-w-36 items-center justify-center gap-3 border border-cyan-300/70 bg-black px-4 text-[12px] font-bold tracking-[0.14em] text-cyan-200 shadow-[0_0_12px_rgba(34,211,238,0.18)] outline-none transition-none hover:bg-cyan-200 hover:text-black hover:shadow-[0_0_24px_rgba(34,211,238,0.75)] focus-visible:bg-cyan-200 focus-visible:text-black disabled:cursor-wait disabled:border-zinc-700 disabled:text-zinc-500 disabled:shadow-none lg:min-w-0 lg:border-0"
+        className="group flex h-full w-full min-w-36 cursor-pointer items-center justify-center gap-3 border border-cyan-300/70 bg-black px-4 text-[12px] font-bold tracking-[0.14em] text-cyan-200 shadow-[0_0_12px_rgba(34,211,238,0.18)] outline-none transition-none hover:bg-cyan-200 hover:text-black hover:shadow-[0_0_24px_rgba(34,211,238,0.75)] focus-visible:bg-cyan-200 focus-visible:text-black disabled:cursor-wait disabled:border-zinc-700 disabled:text-zinc-500 disabled:shadow-none lg:min-w-0 lg:border-0"
         disabled={isLoading}
         onClick={handleAccess}
         type="button"
@@ -193,14 +227,27 @@ function AccessButton() {
           className="absolute inset-x-0 top-full z-50 border border-zinc-700/80 bg-[#0a0a0a] p-1 shadow-[0_10px_24px_rgba(0,0,0,0.45)]"
           role="menu"
         >
+          <Link
+            className="flex h-10 w-full items-center gap-2.5 border border-transparent bg-black px-3 text-left text-zinc-300 transition-none hover:border-cyan-300/60 hover:bg-cyan-200 hover:text-black focus-visible:border-cyan-300/60 focus-visible:bg-cyan-200 focus-visible:text-black"
+            href="/dashboard"
+            onClick={() => setIsMenuOpen(false)}
+            role="menuitem"
+          >
+            <LayoutDashboard className="size-4 text-cyan-200" />
+            <span className="text-xs font-bold uppercase leading-none tracking-[0.12em]">
+              MY DASHBOARD
+            </span>
+          </Link>
           <button
-            className="flex h-8 w-full items-center gap-2 border border-transparent bg-black px-2 text-left text-[10px] font-bold uppercase tracking-[0.12em] text-zinc-300 transition-none hover:border-cyan-300/60 hover:bg-cyan-200 hover:text-black focus-visible:border-cyan-300/60 focus-visible:bg-cyan-200 focus-visible:text-black"
+            className="mt-1 flex h-10 w-full cursor-pointer items-center gap-2.5 border border-transparent bg-black px-3 text-left text-zinc-300 transition-none hover:border-cyan-300/60 hover:bg-cyan-200 hover:text-black focus-visible:border-cyan-300/60 focus-visible:bg-cyan-200 focus-visible:text-black"
             onClick={handleSignOut}
             role="menuitem"
             type="button"
           >
-            <LogOut className="size-3.5 text-cyan-200" />
-            Logout
+            <LogOut className="size-4 text-cyan-200" />
+            <span className="text-xs font-bold uppercase leading-none tracking-[0.12em]">
+              LOGOUT
+            </span>
           </button>
         </div>
       ) : null}
@@ -249,7 +296,7 @@ function FeedbackHub() {
       <div className="flex h-full items-center justify-center gap-2">
         <button
           aria-label="Email Agent DNS"
-          className="flex size-10 items-center justify-center border border-zinc-700 bg-black text-zinc-300 transition-none hover:border-cyan-200 hover:bg-cyan-200 hover:text-black focus-visible:border-cyan-200 focus-visible:bg-cyan-200 focus-visible:text-black"
+          className="flex size-10 cursor-pointer items-center justify-center border border-zinc-700 bg-black text-zinc-300 transition-none hover:border-cyan-200 hover:bg-cyan-200 hover:text-black focus-visible:border-cyan-200 focus-visible:bg-cyan-200 focus-visible:text-black"
           onClick={() => setIsEmailOpen(true)}
           title="Email"
           type="button"
@@ -258,7 +305,7 @@ function FeedbackHub() {
         </button>
         <a
           aria-label="Open GitHub repository"
-          className="flex size-10 items-center justify-center border border-zinc-700 bg-black text-zinc-300 transition-none hover:border-cyan-200 hover:bg-cyan-200 hover:text-black focus-visible:border-cyan-200 focus-visible:bg-cyan-200 focus-visible:text-black"
+          className="flex size-10 cursor-pointer items-center justify-center border border-zinc-700 bg-black text-zinc-300 transition-none hover:border-cyan-200 hover:bg-cyan-200 hover:text-black focus-visible:border-cyan-200 focus-visible:bg-cyan-200 focus-visible:text-black"
           href="https://github.com/idsinas27/agent-dns"
           rel="noreferrer"
           target="_blank"
@@ -268,7 +315,7 @@ function FeedbackHub() {
         </a>
         <button
           aria-label="Create GitHub issue"
-          className="flex size-10 items-center justify-center border border-zinc-700 bg-black text-zinc-300 transition-none hover:border-cyan-200 hover:bg-cyan-200 hover:text-black focus-visible:border-cyan-200 focus-visible:bg-cyan-200 focus-visible:text-black"
+          className="flex size-10 cursor-pointer items-center justify-center border border-zinc-700 bg-black text-zinc-300 transition-none hover:border-cyan-200 hover:bg-cyan-200 hover:text-black focus-visible:border-cyan-200 focus-visible:bg-cyan-200 focus-visible:text-black"
           onClick={openIssueDialog}
           title="Issue"
           type="button"
@@ -374,9 +421,174 @@ function FeedbackHub() {
   );
 }
 
-function HomeInterface() {
+function RegistryTelemetry({
+  metrics,
+}: {
+  metrics: RegistryMetrics;
+}) {
+  const items = [
+    ["ACCOUNTS", metrics.gitAccounts],
+    ["TOTAL AGENTS", metrics.registeredAgents],
+    ["ACTIVE AGENTS", metrics.activeAgents],
+  ];
+
   return (
-    <main className="relative min-h-screen overflow-hidden bg-black font-mono text-zinc-100 selection:bg-cyan-300 selection:text-black">
+    <div className="p-3">
+      <div className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-200">
+        <Terminal className="size-3.5 text-cyan-200" />
+        Registry Telemetry
+      </div>
+
+      <div className="grid gap-2">
+        {items.map(([label, value]) => (
+          <div
+            key={label}
+            className="border border-zinc-800/90 bg-black/55 px-3 py-2.5"
+          >
+            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-zinc-400">
+              {label}
+            </p>
+            <div className="mt-1.5 flex items-baseline justify-between gap-3">
+              <p className="text-base font-black tabular-nums tracking-[0.04em] text-zinc-100">
+                {value}
+              </p>
+              <span className="h-px flex-1 bg-zinc-800" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FeatureVisual({
+  alt,
+  src,
+}: {
+  alt: string;
+  src?: string;
+}) {
+  const [hasImage, setHasImage] = useState(Boolean(src));
+
+  return (
+    <div className="relative min-h-72 overflow-hidden rounded-lg bg-zinc-950/35 shadow-[0_18px_60px_rgba(0,0,0,0.28)] sm:min-h-80 lg:min-h-[380px]">
+      <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(34,211,238,0.12),transparent_44%),linear-gradient(90deg,rgba(39,39,42,0.38)_1px,transparent_1px),linear-gradient(rgba(39,39,42,0.38)_1px,transparent_1px)] bg-[length:100%_100%,42px_42px,42px_42px]" />
+      {src && hasImage ? (
+        <Image
+          alt={alt}
+          className="relative z-10 h-full w-full object-cover"
+          fill
+          onError={() => setHasImage(false)}
+          sizes="(min-width: 1024px) 48vw, 92vw"
+          src={src}
+        />
+      ) : (
+        <div className="relative z-10 flex h-full min-h-72 flex-col justify-between p-5 sm:min-h-80 lg:min-h-[380px]">
+          <div className="flex items-center justify-between border-b border-cyan-300/25 pb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-200">
+            <span>Manifest Sync</span>
+            <span>Ready</span>
+          </div>
+          <div className="grid gap-3">
+            {["endpoint", "schema", "protocol", "registry"].map((item) => (
+              <div
+                className="grid grid-cols-[96px_1fr] items-center gap-3 border border-zinc-800 bg-black/80 px-3 py-2 text-[10px] uppercase tracking-[0.14em]"
+                key={item}
+              >
+                <span className="text-zinc-500">{item}</span>
+                <span className="h-2 bg-cyan-200/70" />
+              </div>
+            ))}
+          </div>
+          <div className="border border-cyan-300/30 bg-cyan-300/10 p-3 text-[10px] uppercase leading-5 tracking-[0.16em] text-cyan-100">
+            GitHub push detected. Agent manifest indexed and discoverable.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HomeInterface() {
+  const [isIntroActive, setIsIntroActive] = useState(false);
+  const [registryMetrics, setRegistryMetrics] =
+    useState<RegistryMetrics>(fallbackMetrics);
+  const introScrollRef = useRef<HTMLDivElement>(null);
+  const introScrollTimeoutRef = useRef<number | null>(null);
+
+  const handleIntroScroll = (event: UIEvent<HTMLDivElement>) => {
+    const scrollElement = event.currentTarget;
+    const scrollTop = scrollElement.scrollTop;
+
+    setIsIntroActive(scrollTop > 4);
+
+    if (introScrollTimeoutRef.current) {
+      window.clearTimeout(introScrollTimeoutRef.current);
+    }
+
+    introScrollTimeoutRef.current = window.setTimeout(() => {
+      setIsIntroActive(scrollElement.scrollTop > 4);
+    }, 1200);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (introScrollTimeoutRef.current) {
+        window.clearTimeout(introScrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadRegistryMetrics() {
+      try {
+        const response = await fetch("/api/telemetry", {
+          cache: "no-store",
+        });
+        const result = (await response.json().catch(() => ({}))) as {
+          gitAccounts?: number | null;
+        };
+
+        if (!isMounted) {
+          return;
+        }
+
+        setRegistryMetrics({
+          activeAgents: "TBD",
+          gitAccounts:
+            typeof result.gitAccounts === "number"
+              ? new Intl.NumberFormat("en-US").format(result.gitAccounts)
+              : "UNAVAILABLE",
+          registeredAgents: "TBD",
+        });
+      } catch {
+        if (isMounted) {
+          setRegistryMetrics({
+            ...fallbackMetrics,
+            gitAccounts: "UNAVAILABLE",
+          });
+        }
+      }
+    }
+
+    loadRegistryMetrics();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleBrandClick = () => {
+    introScrollRef.current?.scrollTo({
+      behavior: "smooth",
+      top: 0,
+    });
+    setIsIntroActive(false);
+  };
+
+  return (
+    <main className="relative h-dvh overflow-hidden bg-black font-mono text-zinc-100 selection:bg-cyan-300 selection:text-black">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(34,211,238,0.22)_1px,transparent_0)] bg-[length:18px_18px]" />
       <motion.div
         aria-hidden
@@ -402,12 +614,22 @@ function HomeInterface() {
       />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.09)_1px,transparent_1px)] bg-[length:100%_4px] opacity-20" />
 
-      <section className="relative z-10 grid min-h-screen grid-cols-1 grid-rows-[56px_1fr_122px] border border-zinc-700/80 lg:grid-cols-[260px_1fr_300px]">
-        <div className="hidden items-center justify-center gap-3 border-b border-r border-zinc-700/80 px-3 text-xl font-black uppercase tracking-[0.12em] text-cyan-200 lg:flex">
+      <section className="relative z-10 grid h-dvh grid-cols-1 grid-rows-[56px_minmax(0,1fr)_122px] overflow-hidden border border-zinc-700/80 lg:grid-cols-[260px_minmax(0,1fr)_300px]">
+        <Link
+          className="group hidden items-center justify-center gap-3 border-b border-r border-zinc-700/80 px-3 text-xl font-black uppercase tracking-[0.12em] text-cyan-200 outline-none transition-colors hover:bg-cyan-300/10 hover:text-cyan-100 focus-visible:bg-cyan-300/10 focus-visible:text-cyan-100 lg:flex"
+          href="/"
+          onClick={handleBrandClick}
+        >
           <DnsMark className="size-7 shrink-0" />
           <span>Agent DNS</span>
-        </div>
-        <div className="flex items-center border-b border-zinc-700/80 px-3 text-xs uppercase tracking-[0.12em] text-zinc-300 sm:text-sm">
+        </Link>
+        <div
+          className={`flex items-center border-b px-3 text-xs uppercase tracking-[0.12em] transition-colors duration-500 sm:text-sm ${
+            isIntroActive
+              ? "border-cyan-300/60 bg-cyan-300/10 text-cyan-100 shadow-[inset_0_-1px_0_rgba(103,232,249,0.36),0_0_24px_rgba(34,211,238,0.12)]"
+              : "border-zinc-700/80 text-zinc-300"
+          }`}
+        >
           <motion.span
             initial={{ opacity: 0 }}
             animate={{ opacity: [0.25, 1, 0.25] }}
@@ -421,35 +643,10 @@ function HomeInterface() {
         </div>
 
         <aside className="hidden border-r border-zinc-700/80 lg:block">
-          <div className="border-b border-zinc-700/80 p-3">
-            <div className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-200">
-              <Terminal className="size-3.5 text-cyan-200" />
-              Registry Telemetry
-            </div>
-            <div className="grid border border-zinc-800">
-              {metrics.map(([label, value]) => (
-                <div
-                  key={label}
-                  className="border-b border-zinc-800 p-3 last:border-b-0"
-                >
-                  <p className="text-[9px] uppercase tracking-[0.18em] text-zinc-500">
-                    {label}
-                  </p>
-                  <p className="mt-1 text-xl font-black tabular-nums text-zinc-100">
-                    {value}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-2 p-3 text-[10px] uppercase leading-relaxed text-zinc-500">
-            <p>Resolver: Global Agent Address Namespace</p>
-            <p>Protocol: Github-linked Trust Manifest</p>
-            <p>Mode: Cold Machine / Friendly Guidance</p>
-          </div>
+          <RegistryTelemetry metrics={registryMetrics} />
         </aside>
 
-        <div className="relative flex min-h-0 items-center justify-center border-zinc-700/80 px-3 py-10 sm:px-6 lg:border-r">
+        <div className="relative min-h-0 overflow-hidden border-zinc-700/80 lg:border-r">
           <motion.div
             className="absolute inset-0 opacity-0"
             animate={{ opacity: [0, 0.5, 0.18] }}
@@ -458,53 +655,98 @@ function HomeInterface() {
             <div className="h-full w-full bg-[linear-gradient(90deg,rgba(34,211,238,0.16)_1px,transparent_1px),linear-gradient(rgba(34,211,238,0.16)_1px,transparent_1px)] bg-[length:72px_72px]" />
           </motion.div>
 
-          <div className="relative w-full max-w-5xl">
-            <h1
-              className="glitch-title mx-auto max-w-4xl text-balance text-center text-4xl font-black uppercase leading-[0.95] tracking-[-0.01em] text-zinc-50 sm:text-6xl lg:text-7xl"
-              data-text={title}
-            >
-              {title.split("").map((char, index) => (
-                <motion.span
-                  key={`${char}-${index}`}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    delay: 0.42 + index * 0.024,
-                    duration: 0.01,
-                    ease: "linear",
-                  }}
+          <div
+            className={`agent-intro-scroll relative h-full w-full overflow-y-auto bg-black/70 ${
+              isIntroActive ? "is-scrolling" : ""
+            }`}
+            onScroll={handleIntroScroll}
+            ref={introScrollRef}
+          >
+            <div className="flex min-h-full items-center px-4 py-10 sm:px-8 lg:px-12">
+              <div className="w-full">
+                <h1
+                  className="glitch-title mx-auto max-w-4xl text-balance text-center text-4xl font-black uppercase leading-[0.95] tracking-[-0.01em] text-zinc-50 sm:text-6xl lg:text-7xl"
+                  data-text={title}
                 >
-                  {char}
-                </motion.span>
-              ))}
-            </h1>
-            {/* TODO: Remove this pre-launch notice when Agent DNS is ready for public launch. */}
-            <p className="mx-auto mt-5 max-w-2xl text-center text-xs font-bold uppercase tracking-[0.22em] text-cyan-200 sm:text-sm">
-              Coming Soon / Registry Access Opening Shortly
-            </p>
+                  {title.split("").map((char, index) => (
+                    <motion.span
+                      key={`${char}-${index}`}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        delay: 0.42 + index * 0.024,
+                        duration: 0.01,
+                        ease: "linear",
+                      }}
+                    >
+                      {char}
+                    </motion.span>
+                  ))}
+                </h1>
+                {/* TODO: Remove this pre-launch notice when Agent DNS is ready for public launch. */}
+                <p className="mx-auto mt-5 max-w-2xl text-center text-xs font-bold uppercase tracking-[0.22em] text-cyan-200 sm:text-sm">
+                  Coming Soon / Registry Access Opening Shortly
+                </p>
 
-            <div className="mx-auto mt-8 max-w-3xl">
-              <label className="group/search relative block">
-                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-cyan-200">
-                  <Search className="size-5" />
-                </span>
-                <input
-                  className="peer h-16 w-full border border-zinc-500 bg-black px-12 text-sm uppercase tracking-[0.08em] text-zinc-100 outline-none transition-none placeholder:normal-case placeholder:text-zinc-600 focus:border-cyan-300 focus:shadow-[0_0_0_1px_rgba(103,232,249,0.85),0_0_34px_rgba(34,211,238,0.48)] sm:text-base"
-                  placeholder="What agent address are you looking for?"
-                />
-                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[10px] uppercase text-zinc-600 peer-focus:text-cyan-200">
-                  ENTER_QUERY
-                </span>
-              </label>
+                <div className="mx-auto mt-8 max-w-3xl">
+                  <label className="group/search relative block">
+                    <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-cyan-200">
+                      <Search className="size-5" />
+                    </span>
+                    <input
+                      className="peer h-16 w-full border border-zinc-500 bg-black py-0 pl-12 pr-4 text-sm uppercase tracking-[0.08em] text-zinc-100 outline-none transition-none placeholder:normal-case placeholder:text-zinc-600 focus:border-cyan-300 focus:shadow-[0_0_0_1px_rgba(103,232,249,0.85),0_0_34px_rgba(34,211,238,0.48)] sm:text-base"
+                      placeholder="What agent address are you looking for?"
+                    />
+                  </label>
 
-              <div className="mt-3 flex flex-wrap justify-center gap-2">
-                {tags.map((tag) => (
-                  <button
-                    key={tag}
-                    className="border border-zinc-700 bg-black px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-400 transition-none hover:border-cyan-200 hover:bg-cyan-200 hover:text-black focus-visible:border-cyan-200 focus-visible:bg-cyan-200 focus-visible:text-black"
+                  <div className="mt-3 flex flex-wrap justify-center gap-2">
+                    {tags.map((tag) => (
+                      <button
+                        key={tag}
+                        className="cursor-pointer border border-zinc-700 bg-black px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-400 transition-none hover:border-cyan-200 hover:bg-cyan-200 hover:text-black focus-visible:border-cyan-200 focus-visible:bg-cyan-200 focus-visible:text-black"
+                      >
+                        [ {tag} ]
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-zinc-800/80 px-6 py-16 sm:px-10 lg:px-16 xl:px-20">
+              <p className="mx-auto max-w-4xl text-balance text-center text-3xl font-black uppercase leading-tight text-zinc-50 sm:text-5xl">
+                The address layer for machine-to-machine intelligence
+              </p>
+
+              <div className="mt-16 grid gap-20">
+                {featureSections.map((section) => (
+                  <section
+                    className={`grid items-end gap-10 lg:gap-16 xl:gap-20 ${
+                      section.imageFirst
+                        ? "lg:grid-cols-[minmax(0,6fr)_minmax(0,4fr)]"
+                        : "lg:grid-cols-[minmax(0,4fr)_minmax(0,6fr)]"
+                    }`}
+                    key={section.title}
                   >
-                    [ {tag} ]
-                  </button>
+                    <div
+                      className={`self-end pb-2 lg:max-w-md ${
+                        section.imageFirst ? "lg:order-2" : ""
+                      }`}
+                    >
+                      <h2 className="text-2xl font-black uppercase leading-tight text-zinc-50 sm:text-3xl">
+                        {section.title}
+                      </h2>
+                      <p className="mt-5 text-sm leading-7 text-zinc-300 sm:text-base">
+                        {section.body}
+                      </p>
+                    </div>
+                    <div className={section.imageFirst ? "lg:order-1" : ""}>
+                      <FeatureVisual
+                        alt={section.imageAlt}
+                        src={section.imageSrc}
+                      />
+                    </div>
+                  </section>
                 ))}
               </div>
             </div>
@@ -513,26 +755,30 @@ function HomeInterface() {
 
         <aside className="hidden min-h-0 lg:block">
           <div className="flex h-full flex-col">
-            <div className="border-b border-zinc-700/80 p-3 text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-              Live Data Feed
+            <div className="flex items-center gap-2 border-b border-zinc-700/80 p-3 text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-200">
+              <Activity className="size-3.5 text-cyan-200" />
+              Live Agent Updates
             </div>
-            <div className="relative flex-1 overflow-hidden p-3">
-              <motion.div
-                className="space-y-3 text-[10px] uppercase leading-relaxed text-cyan-100/75"
-                animate={{ y: [42, -124] }}
-                transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-              >
-                {[...logs, ...logs].map((log, index) => (
-                  <p key={`${log}-${index}`} className="border-l border-cyan-300/40 pl-2">
-                    {log}
-                  </p>
+            <div className="agent-feed-mask relative flex-1 overflow-hidden p-3">
+              <div className="agent-feed-track space-y-3 text-[10px] uppercase leading-relaxed text-cyan-100/75">
+                {[0, 1].map((group) => (
+                  <div className="space-y-3" key={group}>
+                    {rollingLogs.map((log, index) => (
+                      <p
+                        className="border-l border-cyan-300/40 pl-2"
+                        key={`${group}-${log}-${index}`}
+                      >
+                        {log}
+                      </p>
+                    ))}
+                  </div>
                 ))}
-              </motion.div>
+              </div>
             </div>
             <div className="border-t border-zinc-700/80 p-3 text-[10px] uppercase text-zinc-500">
               <div className="flex items-center gap-2 text-cyan-200">
-                <ShieldCheck className="size-3.5" />
-                AUTH ROUTE: GITHUB OAUTH READY
+                <MessageCirclePlus className="size-3.5" />
+                Feedback is always welcome
               </div>
             </div>
           </div>

@@ -32,7 +32,7 @@ function firstParam(value: string | string[] | undefined) {
 
 function safeCallbackUrl(value: string | undefined) {
   if (!value) {
-    return "/";
+    return "/dashboard";
   }
 
   try {
